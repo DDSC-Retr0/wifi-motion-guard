@@ -44,7 +44,7 @@ Router ──── WiFi signal ────► Monitor device
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/wifi-motion-guard.git
+git clone https://github.com/DDSC-Retr0/wifi-motion-guard.git
 cd wifi-motion-guard
 ```
 
