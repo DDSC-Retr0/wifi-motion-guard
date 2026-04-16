@@ -58,6 +58,10 @@ xdg-open index.html    # Linux
 
 ```bash
 # Install dependencies
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 
 # Test with simulated RSSI (no hardware needed)
