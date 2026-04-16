@@ -1,4 +1,4 @@
-# 📡 WiFi Motion Guard
+#  WiFi Motion Guard
 
 > **Passive whole-home motion detection using WiFi signal disruption — no extra hardware required.**
 
@@ -22,20 +22,17 @@ Router ──── WiFi signal ────► Monitor device
                 │
         Signal drops ~10 dBm
                 │
-          ⚡ Motion detected
-```
-
----
+           Motion detected
 
 ## Features
 
-- 🖥️ **Live dashboard** — real-time RSSI stream across 3 access points
-- 🏠 **Interactive floor plan** — draw your house layout with room & wall tools, place AP nodes
-- 🔲 **Zone grid map** — 24-zone heatmap showing signal disruption intensity per room
-- 📋 **Event log** — timestamped detection history
-- ⚙️ **Configurable thresholds** — sensitivity, sampling rate, cooldown, baseline window
-- 🐍 **Python backend** — `wifi_motion.py` for real hardware detection
-- 🎭 **Mock mode** — fully simulated for testing without a Raspberry Pi
+-  **Live dashboard** — real-time RSSI stream across 3 access points
+-  **Interactive floor plan** — draw your house layout with room & wall tools, place AP nodes
+-  **Zone grid map** — 24-zone heatmap showing signal disruption intensity per room
+-  **Event log** — timestamped detection history
+-  **Configurable thresholds** — sensitivity, sampling rate, cooldown, baseline window
+-  **Python backend** — `wifi_motion.py` for real hardware detection
+-  **Mock mode** — fully simulated for testing without a Raspberry Pi
 
 ---
 
@@ -100,7 +97,7 @@ For higher accuracy, use **Channel State Information (CSI)** instead of RSSI. CS
 | Tool | Hardware |
 |------|----------|
 | [nexmon_csi](https://github.com/seemoo-lab/nexmon_csi) | Raspberry Pi 3/4, Nexus 5 |
-| [ESP32-CSI-Tool](https://github.com/StevenMHernandez/ESP32-CSI-Tool) | ESP32 (~£5) |
+| [ESP32-CSI-Tool](https://github.com/StevenMHernandez/ESP32-CSI-Tool) | ESP32 |
 | [PicoScenes](https://ps.zpj.io/) | Intel 5300, AX200 |
 | [linux-80211n-csitool](https://dhalperi.github.io/linux-80211n-csitool/) | Intel 5300 |
 
@@ -179,5 +176,5 @@ MIT — free to use, modify, and distribute.
 ---
 
 <p align="center">
-  Built with 🛰️ passive RF sensing · No cameras · No microphones · Just WiFi
+  Built with passive RF sensing · No cameras · No microphones · Just WiFi
 </p>
