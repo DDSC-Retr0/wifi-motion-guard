@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WiFi Motion Guard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg: #06090f;
+  --surface: #0b1018;
+  --surface2: #0f1825;
+  --border: #162030;
+  --accent: #00e5ff;
+  --accent2: #ff4d6d;
+  --green: #39ff7e;
+  --warn: #ffd166;
+  --text: #b8cdd8;
+  --muted: #3d5a6e;
+  --glow-blue: 0 0 24px rgba(0,229,255,0.25);
+  --glow-red: 0 0 16px rgba(255,77,109,0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(0,229,255,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 80% 80%, rgba(255,77,109,0.03) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
+}
+
+.app { position: relative; z-index: 1; display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+
+/* ── HEADER ── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  background: rgba(6,9,15,0.8);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+
+.brand-mark {
+  width: 44px; height: 44px;
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+
+.brand-mark::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,229,255,0.12), transparent);
+}
+
+.brand-mark svg { width: 22px; height: 22px; }
+
+.brand-name { font-size: 1rem; font-weight: 800; color: #fff; letter-spacing: 3px; text-transform: uppercase; }
+.brand-sub { font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; font-family: 'Share Tech Mono', monospace; }
+
+.header-right { display: flex; align-items: center; gap: 20px; }
+
+.live-pill {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid rgba(57,255,126,0.3);
+  background: rgba(57,255,126,0.06);
+  font-size: 0.7rem; font-family: 'Share Tech Mono', monospace;
+  color: var(--green); letter-spacing: 1px;
+}
+
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 1.4s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.time-display { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--muted); }
+
+/* ── TABS ── */
+.tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  background: var(--surface);
+}
+
+.tab {
+  padding: 12px 22px;
+  font-size: 0.72rem; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── MAIN CONTENT ── */
+.content { padding: 22px 28px; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── GRID LAYOUTS ── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 340px;
+  grid-template-rows: auto auto;
+  gap: 16px;
+}
+
+/* ── PANELS ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-head {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.panel-title { font-size: 0.68rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.panel-badge {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+  padding: 3px 9px; border-radius: 4px;
+  background: rgba(0,229,255,0.08); color: var(--accent);
+}
+
+/* ── STAT CARDS ── */
+.stats-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 14px; margin-bottom: 16px;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  position: relative; overflow: hidden;
+}
+
+.stat-accent { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.stat-lbl { font-size: 0.62rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.stat-num { font-family: 'Share Tech Mono', monospace; font-size: 2rem; color: #fff; line-height: 1; }
+.stat-unit { font-size: 0.68rem; color: var(--muted); margin-top: 4px; }
+
+/* ── RSSI CHART ── */
+.chart-body { padding: 16px; }
+canvas { display: block; width: 100% !important; }
+
+/* ── FLOOR PLAN ── */
+.floorplan-wrap { padding: 16px; }
+
+.floor-canvas-container {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #080d14;
+  cursor: crosshair;
+}
+
+#floorCanvas { display: block; }
+
+.floor-controls {
+  display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+}
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 0.7rem; font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text);
+  transition: all 0.2s;
+}
+
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.active-tool { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.08); }
+.btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
+
+.tool-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; align-self: center; font-family: 'Share Tech Mono', monospace; }
+
+/* ── ZONE GRID MAP ── */
+.zone-grid-wrap { padding: 16px; }
+
+.zone-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 6px;
+  aspect-ratio: 6/4;
+}
+
+.zone-cell {
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.58rem; font-family: 'Share Tech Mono', monospace;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  text-align: center; line-height: 1.3;
+  user-select: none;
+}
+
+.zone-cell:hover { border-color: var(--accent); }
+
+.zone-cell .zone-name { position: relative; z-index: 1; font-size: 0.6rem; font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: 0.5px; }
+.zone-cell .zone-val { position: relative; z-index: 1; font-family: 'Share Tech Mono', monospace; font-size: 0.55rem; color: var(--muted); }
+
+.zone-heat {
+  position: absolute; inset: 0;
+  border-radius: 5px;
+  transition: opacity 0.4s;
+}
+
+/* ── EVENT LOG ── */
+.event-scroll { max-height: 200px; overflow-y: auto; padding: 8px 14px; }
+.ev { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.ev:last-child { border-bottom: none; }
+.ev-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.ev-msg { font-size: 0.78rem; color: var(--text); }
+.ev-time { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; color: var(--muted); }
+
+/* ── AP BARS ── */
+.ap-bars { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+.ap-row { display: flex; align-items: center; gap: 10px; }
+.ap-name { font-size: 0.68rem; color: var(--muted); width: 72px; flex-shrink: 0; }
+.ap-track { flex:1; height: 7px; background: rgba(255,255,255,0.04); border-radius: 4px; overflow: hidden; }
+.ap-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.ap-val { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: var(--text); width: 42px; text-align: right; }
+
+/* ── ALERT ── */
+.alert {
+  display: none;
+  align-items: center; gap: 12px;
+  background: rgba(255,77,109,0.07);
+  border: 1px solid rgba(255,77,109,0.35);
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  animation: alert-pulse 1.2s infinite;
+}
+
+.alert.show { display: flex; }
+@keyframes alert-pulse { 0%,100%{border-color:rgba(255,77,109,0.35)} 50%{border-color:rgba(255,77,109,0.8)} }
+
+.alert-txt { font-size: 0.82rem; color: #ffaabb; flex: 1; }
+.alert-txt strong { color: var(--accent2); }
+.alert-close {
+  background: none; border: 1px solid rgba(255,77,109,0.3); color: var(--muted);
+  padding: 3px 9px; border-radius: 4px; cursor: pointer;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+}
+
+/* ── SETTINGS PAGE ── */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.setting-row { margin-bottom: 16px; }
+.setting-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.setting-val { font-family: 'Share Tech Mono', monospace; color: var(--accent); }
+
+input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 10px rgba(0,229,255,0.5); }
+
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.toggle-row:last-child { border-bottom: none; }
+.toggle-name { font-size: 0.8rem; color: var(--text); }
+.toggle-desc { font-size: 0.67rem; color: var(--muted); margin-top: 2px; }
+
+.tog { width: 38px; height: 20px; background: var(--border); border-radius: 10px; position: relative; cursor: pointer; transition: background 0.3s; flex-shrink: 0; }
+.tog.on { background: var(--accent); }
+.tog::after { content:''; position:absolute; width:14px; height:14px; background:#fff; border-radius:50%; top:3px; left:3px; transition:left 0.3s; }
+.tog.on::after { left:21px; }
+
+/* ── SPANNING ── */
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* flash */
+.flash-overlay { position:absolute; inset:0; background:rgba(0,229,255,0.05); opacity:0; pointer-events:none; transition:opacity 0.15s; border-radius:12px; }
+.flash-overlay.on { opacity: 1; }
+
+@media (max-width: 900px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .stats-strip { grid-template-columns: repeat(2,1fr); }
+  .settings-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8">
+        <path d="M1.5 8.5C5.5 4.5 10.5 2.5 12 2.5s6.5 2 10.5 6M4.5 11.5C7.5 8.5 10 7 12 7s4.5 1.5 7.5 4.5M7.5 14.5C9.5 12.5 11 11.5 12 11.5s2.5 1 4.5 3"/>
+        <circle cx="12" cy="19" r="1.5" fill="#00e5ff"/>
+      </svg>
+    </div>
+    <div>
+      <div class="brand-name">WiFi Motion Guard</div>
+      <div class="brand-sub">Passive RF Disruption Sensing</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="time-display" id="clockDisplay">--:--:--</div>
+    <div class="live-pill"><div class="pulse"></div> LIVE</div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="switchTab('floorplan')">Floor Plan</div>
+  <div class="tab" onclick="switchTab('zones')">Zone Map</div>
+  <div class="tab" onclick="switchTab('settings')">Settings</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- ── DASHBOARD TAB ── -->
+  <div class="tab-panel active" id="tab-dashboard">
+
+    <div class="alert" id="alertBanner">
+      <span style="font-size:1.2rem">⚠</span>
+      <div class="alert-txt"><strong>Motion Detected</strong> — WiFi disruption spike in Living Room zone</div>
+      <button class="alert-close" onclick="dismissAlert()">DISMISS</button>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat">
+        <div class="stat-accent" style="background:linear-gradient(90deg,var(--accent),transparent)"></div>
+        <div class="stat-lbl">RSSI Variance</div>
+        <div class="stat-num" id="s-variance">—</div>
+        <div class="stat-unit">dBm fluctuation</div>
+      </div>
+      <div class="stat">
+        <div class="stat-accent" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+        <div class="stat-lbl">Events Today</div>
+        <div class="stat-num" id="s-events">0</div>
+        <div class="stat-unit">detections logged</div>
+      </div>
+      <div class="stat">
+        <div class="stat-accent" style="background:linear-gradient(90deg,var(--warn),transparent)"></div>
+        <div class="stat-lbl">Active Zone</div>
+        <div class="stat-num" id="s-zone" style="font-size:1.1rem;padding-top:4px">—</div>
+        <div class="stat-unit">last motion area</div>
+      </div>
+      <div class="stat">
+        <div class="stat-accent" style="background:linear-gradient(90deg,var(--accent2),transparent)"></div>
+        <div class="stat-lbl">Signal Quality</div>
+        <div class="stat-num" id="s-quality">—</div>
+        <div class="stat-unit">% link stability</div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+      <!-- RSSI Chart -->
+      <div class="panel span-2" style="position:relative">
+        <div class="flash-overlay" id="flash1"></div>
+        <div class="panel-head">
+          <span class="panel-title">RSSI Signal Stream — Live</span>
+          <span class="panel-badge">3 APs · 10 Hz</span>
+        </div>
+        <div class="chart-body">
+          <canvas id="rssiChart" height="190"></canvas>
+        </div>
+      </div>
+
+      <!-- Event log -->
+      <div class="panel" style="grid-row: span 2">
+        <div class="panel-head">
+          <span class="panel-title">Event Log</span>
+          <span class="panel-badge" id="logBadge">0</span>
+        </div>
+        <div class="event-scroll" id="eventList">
+          <div style="color:var(--muted);font-size:0.75rem;padding:8px 0">Initialising...</div>
+        </div>
+        <div style="padding:10px 14px;border-top:1px solid var(--border)">
+          <button class="btn danger" onclick="clearEvents()" style="width:100%;justify-content:center">Clear Log</button>
+        </div>
+      </div>
+
+      <!-- AP bars -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Access Points</span>
+          <span class="panel-badge">RSSI</span>
+        </div>
+        <div class="ap-bars" id="apBars"></div>
+      </div>
+
+      <!-- Mini zone preview -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Zone Activity</span>
+          <span class="panel-badge">HEATMAP</span>
+        </div>
+        <div style="padding:14px">
+          <div class="zone-grid" id="miniZoneGrid" style="aspect-ratio:6/3"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── FLOOR PLAN TAB ── -->
+  <div class="tab-panel" id="tab-floorplan">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Interactive Floor Plan</span>
+        <span class="panel-badge">DRAW + MONITOR</span>
+      </div>
+      <div class="floorplan-wrap">
+        <p style="font-size:0.75rem;color:var(--muted);margin-bottom:12px;line-height:1.6">
+          Draw your house layout. Use <strong style="color:var(--text)">Room</strong> to place rooms, <strong style="color:var(--text)">AP</strong> to place WiFi access points, and <strong style="color:var(--text)">Wall</strong> to draw walls. Motion heat is overlaid live.
+        </p>
+        <div class="floor-canvas-container">
+          <canvas id="floorCanvas" width="900" height="500"></canvas>
+        </div>
+        <div class="floor-controls">
+          <span class="tool-label">TOOL:</span>
+          <button class="btn active-tool" id="tool-room" onclick="setTool('room')">⬛ Room</button>
+          <button class="btn" id="tool-wall" onclick="setTool('wall')">— Wall</button>
+          <button class="btn" id="tool-ap" onclick="setTool('ap')">📡 AP Node</button>
+          <button class="btn" id="tool-label" onclick="setTool('label')">🏷 Label</button>
+          <span style="flex:1"></span>
+          <button class="btn" onclick="loadPreset()">Load Preset</button>
+          <button class="btn danger" onclick="clearFloor()">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ZONE MAP TAB ── -->
+  <div class="tab-panel" id="tab-zones">
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:16px">
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Room Zone Grid</span>
+          <span class="panel-badge">LIVE HEAT</span>
+        </div>
+        <div class="zone-grid-wrap">
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:14px">Each cell = a monitored zone. Colour intensity = RF disruption level. Click a zone to rename it.</p>
+          <div class="zone-grid" id="mainZoneGrid" style="aspect-ratio:6/4;gap:8px"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Zone Legend</span></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:24px;height:12px;border-radius:3px;background:rgba(255,255,255,0.06);border:1px solid var(--border)"></div><span style="font-size:0.72rem;color:var(--muted)">Idle — No motion</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:24px;height:12px;border-radius:3px;background:rgba(0,229,255,0.25)"></div><span style="font-size:0.72rem;color:var(--muted)">Low — Minor disruption</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:24px;height:12px;border-radius:3px;background:rgba(255,209,102,0.4)"></div><span style="font-size:0.72rem;color:var(--muted)">Medium — Possible motion</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><div style="width:24px;height:12px;border-radius:3px;background:rgba(255,77,109,0.6)"></div><span style="font-size:0.72rem;color:var(--muted)">High — Motion detected</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Top Active Zones</span></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px" id="topZones">
+            <div style="color:var(--muted);font-size:0.72rem">Loading...</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Zone Controls</span></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+            <button class="btn" style="width:100%" onclick="resetZoneHeat()">Reset Heat</button>
+            <button class="btn" style="width:100%" onclick="simulateMotionZone()">Simulate Motion</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SETTINGS TAB ── -->
+  <div class="tab-panel" id="tab-settings">
+    <div class="settings-grid">
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Detection Parameters</span></div>
+        <div style="padding:18px">
+          <div class="setting-row">
+            <div class="setting-label"><span>Sensitivity Threshold</span><span class="setting-val" id="cfg-thresh">−65 dBm</span></div>
+            <input type="range" min="-85" max="-45" value="-65" oninput="document.getElementById('cfg-thresh').textContent='−'+Math.abs(this.value)+' dBm';threshold=parseInt(this.value)">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label"><span>Sampling Rate</span><span class="setting-val" id="cfg-rate">10 Hz</span></div>
+            <input type="range" min="1" max="20" value="10" oninput="document.getElementById('cfg-rate').textContent=this.value+' Hz'">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label"><span>Baseline Window</span><span class="setting-val" id="cfg-window">30 s</span></div>
+            <input type="range" min="5" max="120" value="30" oninput="document.getElementById('cfg-window').textContent=this.value+' s'">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label"><span>Event Cooldown</span><span class="setting-val" id="cfg-cool">5 s</span></div>
+            <input type="range" min="1" max="30" value="5" oninput="document.getElementById('cfg-cool').textContent=this.value+' s'">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Features</span></div>
+        <div style="padding:18px">
+          <div class="toggle-row">
+            <div><div class="toggle-name">Motion Alerts</div><div class="toggle-desc">Show banner on detection</div></div>
+            <div class="tog on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-name">Auto Baseline Calibration</div><div class="toggle-desc">Continuously recalculate idle</div></div>
+            <div class="tog on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-name">Multi-path Analysis</div><div class="toggle-desc">CSI subcarrier tracking</div></div>
+            <div class="tog" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-name">Zone Heatmap Overlay</div><div class="toggle-desc">Show live heat on floor plan</div></div>
+            <div class="tog on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-name">Event Sound Alerts</div><div class="toggle-desc">Beep on motion event</div></div>
+            <div class="tog" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Network Config</span></div>
+        <div style="padding:18px">
+          <div class="setting-row">
+            <div class="setting-label"><span>Router IP</span></div>
+            <input type="text" value="192.168.1.1" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:0.8rem;outline:none">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label"><span>Interface</span></div>
+            <input type="text" value="wlan0" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:0.8rem;outline:none">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label"><span>Monitor Mode</span></div>
+            <select style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:0.8rem;outline:none">
+              <option>RSSI (iwconfig)</option>
+              <option>CSI (nexmon)</option>
+              <option>CSI (ESP32)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">About</span></div>
+        <div style="padding:18px;font-size:0.78rem;color:var(--muted);line-height:1.7">
+          <p><strong style="color:var(--text)">WiFi Motion Guard v1.0</strong></p>
+          <p style="margin-top:8px">Passive motion detection using 802.11 RSSI/CSI signal disruption. No additional hardware required beyond existing WiFi infrastructure.</p>
+          <p style="margin-top:10px">Supports: RSSI polling, Linux CSI tools, nexmon_csi, ESP32-CSI-Tool, PicoScenes.</p>
+          <p style="margin-top:10px;color:var(--border)">──────────────────</p>
+          <p style="margin-top:10px">MIT License · Open Source</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /content -->
+</div><!-- /app -->
+
+<script>
+// ─── GLOBALS ──────────────────────────────────────────────
+let threshold = -65;
+let eventCount = 0;
+let events = [];
+let inMotion = false;
+let motionPhase = 0;
+let alertShown = false;
+let tick = 0;
+
+const ZONE_NAMES = ['Entrance','Hallway','Kitchen','Dining Rm','Living Rm','Utility','Bathroom','Bedroom 1','Bedroom 2','Master Bed','Study','Landing','Garage','Garden Rm','Stairway','Loft','Spare Rm','Pantry','Ensuite','Cellar','Office','Boiler Rm','Porch','Laundry'];
+
+const zoneHeat = new Array(24).fill(0);
+let zoneNames = [...ZONE_NAMES];
+
+// AP data
+const APS = [
+  { id:'ap1', name:'AP · 2.4 GHz', base:-52, color:'#00e5ff', glow:'rgba(0,229,255,0.4)' },
+  { id:'ap2', name:'AP · 5 GHz',   base:-61, color:'#39ff7e', glow:'rgba(57,255,126,0.3)' },
+  { id:'ap3', name:'AP · 6 GHz',   base:-67, color:'#ff4d6d', glow:'rgba(255,77,109,0.3)' },
+];
+const MAX_PTS = 90;
+const rssiData = {};
+APS.forEach(ap => {
+  rssiData[ap.id] = [];
+  for(let i=0;i<MAX_PTS;i++) rssiData[ap.id].push(ap.base + (Math.random()-.5)*4);
+});
+
+// ─── CLOCK ────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clockDisplay').textContent = new Date().toTimeString().slice(0,8);
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ─── TABS ─────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['dashboard','floorplan','zones','settings'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ─── EVENTS ───────────────────────────────────────────────
+function addEvent(msg, type='info') {
+  eventCount++;
+  document.getElementById('s-events').textContent = eventCount;
+  const time = new Date().toTimeString().slice(0,8);
+  events.unshift({msg,time,type});
+  if(events.length>40) events.pop();
+  renderEvents();
+}
+
+function renderEvents() {
+  const colors = {info:'#00e5ff',motion:'#ff4d6d',clear:'#39ff7e',warn:'#ffd166'};
+  document.getElementById('eventList').innerHTML = events.map(e=>`
+    <div class="ev">
+      <div class="ev-dot" style="background:${colors[e.type]};box-shadow:0 0 5px ${colors[e.type]}"></div>
+      <div><div class="ev-msg">${e.msg}</div><div class="ev-time">${e.time}</div></div>
+    </div>`).join('');
+  document.getElementById('logBadge').textContent = events.length;
+}
+
+function clearEvents() { events=[]; renderEvents(); }
+
+// ─── ALERT ────────────────────────────────────────────────
+function dismissAlert() {
+  document.getElementById('alertBanner').classList.remove('show');
+  alertShown = false;
+}
+
+// ─── AP BARS ─────────────────────────────────────────────
+function renderAPBars() {
+  document.getElementById('apBars').innerHTML = APS.map(ap=>{
+    const v = rssiData[ap.id].slice(-1)[0]??-70;
+    const pct = Math.min(100,Math.max(0,((v+90)/50)*100));
+    return `<div class="ap-row">
+      <span class="ap-name">${ap.name}</span>
+      <div class="ap-track"><div class="ap-fill" id="apbar-${ap.id}" style="width:${pct}%;background:${ap.color}"></div></div>
+      <span class="ap-val" id="apval-${ap.id}">${v.toFixed(0)}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateAPBars() {
+  APS.forEach(ap=>{
+    const v = rssiData[ap.id].slice(-1)[0]??-70;
+    const pct = Math.min(100,Math.max(0,((v+90)/50)*100));
+    const b=document.getElementById('apbar-'+ap.id);
+    const val=document.getElementById('apval-'+ap.id);
+    if(b) b.style.width=pct+'%';
+    if(val) val.textContent=v.toFixed(0);
+  });
+}
+
+renderAPBars();
+
+// ─── ZONE GRIDS ───────────────────────────────────────────
+const ZONE_LAYOUT = [
+  // [col-start, col-end, row-start, row-end, index]
+];
+
+function heatRGB(v) {
+  if(v<0.01) return null;
+  if(v<0.33) return `rgba(0,229,255,${v*0.8+0.05})`;
+  if(v<0.66) return `rgba(255,209,102,${v*0.7+0.1})`;
+  return `rgba(255,77,109,${v*0.6+0.2})`;
+}
+
+function buildZoneGrid(containerId, count=24) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = '';
+  for(let i=0;i<count;i++){
+    const cell = document.createElement('div');
+    cell.className = 'zone-cell';
+    cell.id = containerId+'-z'+i;
+    cell.innerHTML = `<div><div class="zone-name">${zoneNames[i]||'Zone '+(i+1)}</div><div class="zone-val" id="${containerId}-zv${i}">–</div></div><div class="zone-heat" id="${containerId}-zh${i}"></div>`;
+    cell.onclick = () => {
+      const n = prompt('Rename zone:', zoneNames[i]);
+      if(n){ zoneNames[i]=n; buildZoneGrid(containerId, count); }
+    };
+    el.appendChild(cell);
+  }
+}
+
+function updateZoneGrids() {
+  ['mainZoneGrid','miniZoneGrid'].forEach(gid=>{
+    const count = gid==='miniZoneGrid'?18:24;
+    for(let i=0;i<count;i++){
+      const heat=document.getElementById(gid+'-zh'+i);
+      const val=document.getElementById(gid+'-zv'+i);
+      if(heat) heat.style.background=heatRGB(zoneHeat[i])||'transparent';
+      if(val) val.textContent=zoneHeat[i]>0.05?(zoneHeat[i]*100).toFixed(0)+'%':'–';
+    }
+  });
+  updateTopZones();
+}
+
+function updateTopZones() {
+  const sorted = zoneHeat.map((v,i)=>({v,i})).filter(x=>x.v>0.05).sort((a,b)=>b.v-a.v).slice(0,4);
+  const el = document.getElementById('topZones');
+  if(!el) return;
+  if(!sorted.length){ el.innerHTML='<div style="color:var(--muted);font-size:0.72rem">No active zones</div>'; return; }
+  el.innerHTML = sorted.map(({v,i})=>`
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:6px;height:6px;border-radius:50%;background:${heatRGB(v)||'#fff'};flex-shrink:0"></div>
+      <span style="font-size:0.75rem;color:var(--text);flex:1">${zoneNames[i]}</span>
+      <span style="font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:var(--muted)">${(v*100).toFixed(0)}%</span>
+    </div>`).join('');
+}
+
+function resetZoneHeat(){ zoneHeat.fill(0); }
+function simulateMotionZone(){
+  const idx = Math.floor(Math.random()*24);
+  zoneHeat[idx]=Math.min(1,zoneHeat[idx]+0.7);
+  addEvent(`🎯 Manual sim: motion in ${zoneNames[idx]}`,'warn');
+}
+
+buildZoneGrid('mainZoneGrid',24);
+buildZoneGrid('miniZoneGrid',18);
+
+// ─── RSSI CHART ───────────────────────────────────────────
+const chartCanvas = document.getElementById('rssiChart');
+const ctx = chartCanvas.getContext('2d');
+
+function resizeChart(){
+  chartCanvas.width = chartCanvas.parentElement.clientWidth - 32;
+  chartCanvas.height = 190;
+}
+resizeChart();
+window.addEventListener('resize', resizeChart);
+
+function drawChart(){
+  const W=chartCanvas.width, H=chartCanvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // grid
+  ctx.strokeStyle='rgba(22,32,48,0.9)'; ctx.lineWidth=1;
+  for(let r=0;r<=5;r++){ const y=(r/5)*H; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // threshold line
+  const tY = ((threshold-(-45))/((-90)-(-45)))*H;
+  ctx.strokeStyle='rgba(255,209,102,0.25)'; ctx.setLineDash([5,5]); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,tY); ctx.lineTo(W,tY); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,209,102,0.5)'; ctx.font='10px Share Tech Mono';
+  ctx.fillText('THRESHOLD '+threshold+' dBm', W-140, tY-4);
+
+  // db axis labels
+  ctx.fillStyle='rgba(61,90,110,0.9)'; ctx.font='10px Share Tech Mono';
+  [-45,-55,-65,-75,-85].forEach(db=>{
+    const y=((db-(-45))/((-90)-(-45)))*H;
+    ctx.fillText(db+'dB',4,y-3);
+  });
+
+  const toX=i=>(i/(MAX_PTS-1))*W;
+  const toY=v=>((v-(-45))/((-90)-(-45)))*H;
+
+  // fill under AP1
+  const d=rssiData.ap1;
+  ctx.save();
+  ctx.fillStyle='rgba(0,229,255,0.04)';
+  ctx.beginPath(); ctx.moveTo(toX(0),H);
+  d.forEach((v,i)=>ctx.lineTo(toX(i),toY(v)));
+  ctx.lineTo(toX(d.length-1),H); ctx.closePath(); ctx.fill(); ctx.restore();
+
+  // draw each AP line
+  APS.forEach(ap=>{
+    const data=rssiData[ap.id];
+    ctx.save(); ctx.shadowColor=ap.glow; ctx.shadowBlur=8;
+    ctx.strokeStyle=ap.color; ctx.lineWidth=1.8;
+    ctx.beginPath();
+    data.forEach((v,i)=>{ const x=toX(i),y=toY(v); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.stroke(); ctx.restore();
+  });
+}
+
+// ─── SIMULATION LOOP ──────────────────────────────────────
+function simulate(){
+  tick++;
+
+  if(!inMotion && Math.random()<0.005){
+    inMotion=true;
+    motionPhase=Math.floor(Math.random()*25)+12;
+    const zoneIdx=Math.floor(Math.random()*24);
+    document.getElementById('s-zone').textContent=zoneNames[zoneIdx].slice(0,10);
+    addEvent(`⚡ Motion — RF disruption: ${zoneNames[zoneIdx]}`,'motion');
+    zoneHeat[zoneIdx]=Math.min(1,zoneHeat[zoneIdx]+0.75);
+
+    const f=document.getElementById('flash1');
+    if(f){f.classList.add('on');setTimeout(()=>f.classList.remove('on'),300);}
+
+    if(!alertShown){
+      document.getElementById('alertBanner').classList.add('show');
+      alertShown=true;
+    }
+  }
+
+  if(inMotion&&motionPhase>0) motionPhase--;
+  else if(inMotion){ inMotion=false; addEvent('✓ Signal stabilised — motion ended','clear'); }
+
+  const mag=inMotion?(Math.random()*16+8):0;
+
+  APS.forEach(ap=>{
+    const v=ap.base+(Math.random()-.5)*3.5-(inMotion?Math.random()*mag*0.7:0);
+    rssiData[ap.id].push(v);
+    if(rssiData[ap.id].length>MAX_PTS) rssiData[ap.id].shift();
+  });
+
+  // decay zone heat
+  for(let i=0;i<24;i++) zoneHeat[i]*=0.985;
+  if(inMotion){
+    const spread=Math.floor(Math.random()*3);
+    for(let s=0;s<=spread;s++){
+      const idx=Math.floor(Math.random()*24);
+      zoneHeat[idx]=Math.min(1,zoneHeat[idx]+0.15*Math.random());
+    }
+  }
+
+  const recent=rssiData.ap1.slice(-10);
+  const variance=Math.max(...recent)-Math.min(...recent);
+  document.getElementById('s-variance').textContent=variance.toFixed(1);
+  document.getElementById('s-quality').textContent=Math.max(0,Math.min(100,100-variance*2.5)).toFixed(0);
+
+  drawChart();
+  updateAPBars();
+  updateZoneGrids();
+}
+
+setInterval(simulate, 110);
+
+// ─── FLOOR PLAN ───────────────────────────────────────────
+const fc = document.getElementById('floorCanvas');
+const fctx = fc.getContext('2d');
+
+let floorTool = 'room';
+let drawing = false;
+let startX, startY;
+let floorObjects = [];
+let currentDraw = null;
+
+const ROOM_COLORS = ['rgba(0,229,255,0.08)','rgba(57,255,126,0.07)','rgba(255,209,102,0.07)','rgba(255,77,109,0.07)','rgba(168,85,247,0.07)'];
+let roomColorIdx = 0;
+
+function resizeFloor(){
+  fc.width = fc.parentElement.clientWidth;
+  fc.height = 500;
+  drawFloor();
+}
+resizeFloor();
+window.addEventListener('resize', resizeFloor);
+
+function setTool(t){
+  floorTool=t;
+  document.querySelectorAll('[id^="tool-"]').forEach(b=>b.classList.remove('active-tool'));
+  const btn=document.getElementById('tool-'+t);
+  if(btn) btn.classList.add('active-tool');
+}
+
+function getPos(e){
+  const r=fc.getBoundingClientRect();
+  const touch=e.touches?e.touches[0]:e;
+  return {x:touch.clientX-r.left, y:touch.clientY-r.top};
+}
+
+fc.addEventListener('mousedown',e=>{
+  const {x,y}=getPos(e);
+  if(floorTool==='label'){
+    const name=prompt('Room name:','Room');
+    if(name) floorObjects.push({type:'label',x,y,text:name});
+    drawFloor(); return;
+  }
+  drawing=true; startX=x; startY=y;
+});
+
+fc.addEventListener('mousemove',e=>{
+  if(!drawing) return;
+  const {x,y}=getPos(e);
+  currentDraw={x:startX,y:startY,w:x-startX,h:y-startY};
+  drawFloor();
+  // preview
+  fctx.save();
+  if(floorTool==='room'){
+    fctx.fillStyle=ROOM_COLORS[roomColorIdx%ROOM_COLORS.length];
+    fctx.strokeStyle='rgba(0,229,255,0.6)'; fctx.lineWidth=1.5;
+    fctx.fillRect(currentDraw.x,currentDraw.y,currentDraw.w,currentDraw.h);
+    fctx.strokeRect(currentDraw.x,currentDraw.y,currentDraw.w,currentDraw.h);
+  } else if(floorTool==='wall'){
+    fctx.strokeStyle='rgba(184,205,216,0.7)'; fctx.lineWidth=3;
+    fctx.beginPath(); fctx.moveTo(startX,startY); fctx.lineTo(x,y); fctx.stroke();
+  }
+  fctx.restore();
+});
+
+fc.addEventListener('mouseup',e=>{
+  if(!drawing) return; drawing=false;
+  const {x,y}=getPos(e);
+  if(floorTool==='room'){
+    floorObjects.push({type:'room',x:startX,y:startY,w:x-startX,h:y-startY,color:ROOM_COLORS[roomColorIdx++%ROOM_COLORS.length],heat:0});
+  } else if(floorTool==='wall'){
+    floorObjects.push({type:'wall',x1:startX,y1:startY,x2:x,y2:y});
+  } else if(floorTool==='ap'){
+    floorObjects.push({type:'ap',x:startX,y:startY});
+  }
+  currentDraw=null;
+  drawFloor();
+});
+
+function drawFloor(){
+  fctx.clearRect(0,0,fc.width,fc.height);
+
+  // grid dots
+  fctx.fillStyle='rgba(22,32,48,0.8)';
+  for(let gx=20;gx<fc.width;gx+=30) for(let gy=20;gy<fc.height;gy+=30){
+    fctx.beginPath(); fctx.arc(gx,gy,1,0,Math.PI*2); fctx.fill();
+  }
+
+  floorObjects.forEach(obj=>{
+    fctx.save();
+    if(obj.type==='room'){
+      fctx.fillStyle=obj.color||'rgba(0,229,255,0.08)';
+      // heat overlay
+      if(obj.heat>0.05){
+        const r=Math.round(obj.heat*255), g=Math.round((1-obj.heat)*100), b=Math.round((1-obj.heat)*200);
+        fctx.fillStyle=`rgba(${r},${g},${b},${obj.heat*0.4+0.08})`;
+      }
+      fctx.strokeStyle='rgba(0,229,255,0.4)'; fctx.lineWidth=1.5;
+      fctx.fillRect(obj.x,obj.y,obj.w,obj.h);
+      fctx.strokeRect(obj.x,obj.y,obj.w,obj.h);
+    } else if(obj.type==='wall'){
+      fctx.strokeStyle='rgba(184,205,216,0.6)'; fctx.lineWidth=3; fctx.lineCap='round';
+      fctx.beginPath(); fctx.moveTo(obj.x1,obj.y1); fctx.lineTo(obj.x2,obj.y2); fctx.stroke();
+    } else if(obj.type==='ap'){
+      // AP node
+      fctx.fillStyle='rgba(0,229,255,0.15)';
+      fctx.strokeStyle='#00e5ff'; fctx.lineWidth=1.5;
+      fctx.beginPath(); fctx.arc(obj.x,obj.y,10,0,Math.PI*2); fctx.fill(); fctx.stroke();
+      // wifi rings
+      [18,26,34].forEach((r,i)=>{
+        fctx.strokeStyle=`rgba(0,229,255,${0.3-i*0.09})`; fctx.lineWidth=1;
+        fctx.beginPath(); fctx.arc(obj.x,obj.y,r,Math.PI*1.1,Math.PI*1.9); fctx.stroke();
+        fctx.beginPath(); fctx.arc(obj.x,obj.y,r,Math.PI*(-0.1),Math.PI*0.9); fctx.stroke();
+      });
+      fctx.fillStyle='#00e5ff'; fctx.font='9px Share Tech Mono';
+      fctx.textAlign='center';
+      fctx.fillText('AP',obj.x,obj.y+4);
+    } else if(obj.type==='label'){
+      fctx.fillStyle='rgba(184,205,216,0.7)'; fctx.font='bold 11px Syne';
+      fctx.textAlign='left';
+      fctx.fillText(obj.text,obj.x,obj.y);
+    }
+    fctx.restore();
+  });
+
+  // motion heat on rooms from zone data
+  floorObjects.filter(o=>o.type==='room').forEach((r,i)=>{
+    r.heat=zoneHeat[i%24];
+  });
+}
+
+// Animate floor heat
+setInterval(drawFloor, 200);
+
+function clearFloor(){ if(confirm('Clear floor plan?')){ floorObjects=[]; drawFloor(); } }
+
+function loadPreset(){
+  floorObjects=[];
+  const W=fc.width, H=fc.height;
+  const s=Math.min(W,H);
+  // preset 7-room layout
+  const rooms=[
+    {x:30,y:30,w:s*0.28,h:s*0.22,name:'Living Room'},
+    {x:30+s*0.3,y:30,w:s*0.22,h:s*0.22,name:'Kitchen'},
+    {x:30+s*0.54,y:30,w:s*0.2,h:s*0.22,name:'Dining'},
+    {x:30,y:30+s*0.24,w:s*0.22,h:s*0.28,name:'Bedroom 1'},
+    {x:30+s*0.24,y:30+s*0.24,w:s*0.22,h:s*0.28,name:'Bathroom'},
+    {x:30+s*0.48,y:30+s*0.24,w:s*0.22,h:s*0.28,name:'Bedroom 2'},
+    {x:30+s*0.24,y:30+s*0.54,w:s*0.46,h:s*0.2,name:'Hallway'},
+  ];
+  rooms.forEach((r,i)=>{
+    floorObjects.push({type:'room',x:r.x,y:r.y,w:r.w,h:r.h,color:ROOM_COLORS[i%ROOM_COLORS.length],heat:0});
+    floorObjects.push({type:'label',x:r.x+8,y:r.y+18,text:r.name});
+  });
+  // AP nodes
+  floorObjects.push({type:'ap',x:30+s*0.14,y:30+s*0.11});
+  floorObjects.push({type:'ap',x:30+s*0.59,y:30+s*0.38});
+  drawFloor();
+  addEvent('📐 Floor plan preset loaded','info');
+}
+
+// ─── BOOTSTRAP ────────────────────────────────────────────
+addEvent('System initialised — passive WiFi monitoring active','info');
+addEvent('Baseline calibration complete · 3 APs online','clear');
+setTimeout(()=>loadPreset(),500);
+</script>
+</body>
+</html>
